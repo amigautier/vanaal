@@ -1,10 +1,26 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Search, Heart, User, X, ChevronRight, ChevronDown } from 'lucide-react'
+import { Search, Heart, User, X, ChevronRight, ChevronDown, Loader2 } from 'lucide-react'
 
-// Estructura con tus textos y enlaces exactos
+const PAYLOAD_URL = process.env.NEXT_PUBLIC_PAYLOAD_URL || ''
+
+interface SearchResult {
+  id: string
+  title: string
+  slug: string
+  category?:
+    | {
+        name?: string
+      }
+    | string
+  featuredImage?: {
+    url?: string
+    alt?: string
+  }
+}
+
 const NAV_CATEGORIES = [
   {
     name: 'Moda local',
@@ -70,9 +86,85 @@ export const Header = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [expandedMobileCategory, setExpandedMobileCategory] = useState<string | null>(null)
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  // Estado para la visibilidad en móvil al scroll
+  const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false)
+  const lastScrollY = useRef(0)
+
+  // ESTADOS DE BÚSQUEDA (Móvil y Desktop)
+  const [isDesktopSearchOpen, setIsDesktopSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false)
+
+  // Cierra menú móvil y resetea estados
+  const handleCloseMobileMenu = () => {
+    setIsOpen(false)
+    setExpandedMobileCategory(null)
+    setActiveCategory(null)
+    setSearchQuery('')
+    setSearchResults([])
+  }
+
+  // Cierra la búsqueda desktop
+  const handleCloseDesktopSearch = () => {
+    setIsDesktopSearchOpen(false)
+    setSearchQuery('')
+    setSearchResults([])
+  }
+
+  // Listener para atajo Command + K / Ctrl + K y Tecla Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setIsDesktopSearchOpen((prev) => !prev)
+      }
+      if (e.key === 'Escape' && isDesktopSearchOpen) {
+        handleCloseDesktopSearch()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isDesktopSearchOpen])
+
+  // Petición con Debounce a Payload CMS
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([])
+      setIsLoadingSearch(false)
+      return
+    }
+
+    setIsLoadingSearch(true)
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `${PAYLOAD_URL}/api/posts?where[title][like]=${encodeURIComponent(searchQuery)}&limit=5&depth=1`,
+        )
+
+        if (res.ok) {
+          const data = await res.json()
+          setSearchResults(data.docs || [])
+        } else {
+          setSearchResults([])
+        }
+      } catch (error) {
+        console.error('Error buscando en Payload:', error)
+        setSearchResults([])
+      } finally {
+        setIsLoadingSearch(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || isDesktopSearchOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
@@ -80,7 +172,39 @@ export const Header = () => {
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [isOpen])
+  }, [isOpen, isDesktopSearchOpen])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      const halfViewportHeight = window.innerHeight / 2
+
+      if (currentScrollY > 40) {
+        setIsScrolled(true)
+      } else {
+        setIsScrolled(false)
+      }
+
+      if (window.innerWidth < 768) {
+        if (currentScrollY > halfViewportHeight) {
+          if (currentScrollY > lastScrollY.current) {
+            setIsMobileHeaderHidden(true)
+          } else if (currentScrollY < lastScrollY.current) {
+            setIsMobileHeaderHidden(false)
+          }
+        } else {
+          setIsMobileHeaderHidden(false)
+        }
+      } else {
+        setIsMobileHeaderHidden(false)
+      }
+
+      lastScrollY.current = currentScrollY
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const toggleMobileCategory = (categoryName: string) => {
     setExpandedMobileCategory((prev) => (prev === categoryName ? null : categoryName))
@@ -89,6 +213,7 @@ export const Header = () => {
   return (
     <>
       <header
+        className={`main-header-root ${isMobileHeaderHidden ? 'mobile-hidden' : ''}`}
         style={{
           backgroundColor: '#ffffff',
           width: '100%',
@@ -131,112 +256,116 @@ export const Header = () => {
           </Link>
         </div>
 
-        {/* SECCIÓN PRINCIPAL HEADER */}
-        <div
-          style={{
-            maxWidth: '1280px',
-            margin: '0 auto',
-            padding: '15px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          {/* IZQUIERDA */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', minWidth: '80px' }}>
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              aria-label="Abrir menú"
-              className="mobile-menu-btn"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 0,
-                display: 'flex',
-              }}
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#242525"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              >
-                <line x1="3" y1="6" x2="21" y2="6" /> <line x1="3" y1="12" x2="21" y2="12" />{' '}
-                <line x1="3" y1="18" x2="21" y2="18" />{' '}
-              </svg>
-            </button>
-
-            <div className="desktop-suscribe" style={{ display: 'flex', alignItems: 'center' }}>
-              <Link
-                href="/suscribirse"
-                aria-label="Suscribirse"
-                style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
-              >
-                <Heart size={21} color="#242525" />
-              </Link>
-            </div>
-          </div>
-
-          {/* LOGO EN EL CENTRO */}
-          <Link
-            href="/"
-            style={{
-              textDecoration: 'none',
-              textAlign: 'center',
-              flex: 1,
-              display: 'flex',
-              justifyContent: 'center',
-            }}
-          >
-            <img
-              src="/logotype.svg"
-              alt="Vanaal Magazine"
-              className="main-logo-img"
-              style={{ width: 'auto', objectFit: 'contain', display: 'block' }}
-            />
-          </Link>
-
-          {/* DERECHA */}
+        {/* CONTENEDOR CON TRANSICIÓN SUAVE DE SCROLL PARA LA PARTE SUPERIOR */}
+        <div className={`smooth-collapse-container ${isScrolled ? 'collapsed' : ''}`}>
           <div
             style={{
+              maxWidth: '1500px',
+              margin: '0 auto',
+              padding: '15px 20px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'flex-end',
-              gap: '18px',
-              minWidth: '80px',
+              justifyContent: 'space-between',
             }}
           >
-            <button
-              aria-label="Buscar"
+            {/* IZQUIERDA */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', minWidth: '80px' }}>
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                aria-label="Abrir menú"
+                className="mobile-menu-btn"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                }}
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#242525"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                >
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
+
+              <div className="desktop-suscribe" style={{ display: 'flex', alignItems: 'center' }}>
+                <Link
+                  href="/suscribirse"
+                  aria-label="Suscribirse"
+                  style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+                >
+                  <Heart size={21} color="#242525" />
+                </Link>
+              </div>
+            </div>
+
+            {/* LOGO EN EL CENTRO */}
+            <Link
+              href="/"
               style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 0,
+                textDecoration: 'none',
+                textAlign: 'center',
+                flex: 1,
                 display: 'flex',
+                justifyContent: 'center',
               }}
             >
-              <Search size={21} color="#242525" />
-            </button>
+              <img
+                src="/logotype.svg"
+                alt="Vanaal Magazine"
+                className="main-logo-img"
+                style={{ width: 'auto', objectFit: 'contain', display: 'block' }}
+              />
+            </Link>
 
-            <div className="desktop-user">
-              <Link
-                href="/login"
-                aria-label="Cuenta"
-                style={{ display: 'flex', alignItems: 'center' }}
+            {/* DERECHA */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '18px',
+                minWidth: '80px',
+              }}
+            >
+              <button
+                onClick={() => setIsDesktopSearchOpen(true)}
+                aria-label="Buscar"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                }}
               >
-                <User size={22} color="#242525" />
-              </Link>
+                <Search size={21} color="#242525" />
+              </button>
+
+              <div className="desktop-user">
+                <Link
+                  href="/login"
+                  aria-label="Cuenta"
+                  style={{ display: 'flex', alignItems: 'center' }}
+                >
+                  <User size={22} color="#242525" />
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* LÍNEA DIVISORA GRIS */}
-        <div style={{ width: '100%', height: '1px', backgroundColor: '#e5e5e5' }} />
+          {/* LÍNEA DIVISORA GRIS */}
+          <div style={{ width: '100%', height: '1px', backgroundColor: '#e5e5e5' }} />
+        </div>
 
         {/* MENÚ DE CATEGORÍAS EN DESKTOP Y SCROLL MÓVIL */}
         <nav
@@ -251,43 +380,95 @@ export const Header = () => {
         >
           <div
             className="categories-inner-container"
-            style={{ display: 'inline-block', minWidth: '100%' }}
+            style={{
+              maxWidth: '1500px',
+              margin: '0 auto',
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
           >
-            <ul
-              className="categories-list"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '25px',
-                listStyle: 'none',
-                margin: 0,
-                padding: '14px 30px',
-                textTransform: 'uppercase',
-                fontSize: '0.85rem',
-                letterSpacing: '0.5px',
-                fontWeight: 500,
-                fontFamily: "'Noto Sans KR', sans-serif",
-              }}
-            >
-              {NAV_CATEGORIES.map((category) => (
-                <li
-                  key={category.name}
-                  onMouseEnter={() => setActiveCategory(category.name)}
-                  style={{ position: 'relative' }}
+            <div className="nav-wrapper-desktop">
+              {/* ÍCONO CORAZÓN (IZQUIERDA) - SOLO VISIBLE EN SCROLL DESKTOP */}
+              <div className={`sticky-actions-left ${isScrolled ? 'show-sticky' : ''}`}>
+                <Link
+                  href="/suscribirse"
+                  aria-label="Suscribirse"
+                  style={{ display: 'flex', alignItems: 'center' }}
                 >
-                  <Link
-                    href={category.href}
-                    style={{
-                      textDecoration: 'none',
-                      color: activeCategory === category.name ? '#000000' : '#242525',
-                      display: 'inline-block',
-                    }}
-                  >
-                    {category.name}
+                  <Heart size={19} color="#242525" />
+                </Link>
+              </div>
+
+              <ul
+                className="categories-list"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '25px',
+                  listStyle: 'none',
+                  margin: 0,
+                  textTransform: 'uppercase',
+                  fontSize: '0.85rem',
+                  letterSpacing: '0.5px',
+                  fontWeight: 500,
+                  fontFamily: "'Noto Sans KR', sans-serif",
+                }}
+              >
+                {/* LOGO DESKTOP JUNTO A MODA LOCAL */}
+                <li className="desktop-nav-logo">
+                  <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
+                    <img
+                      src="/logotype.svg"
+                      alt="Vanaal Magazine"
+                      style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
+                    />
                   </Link>
                 </li>
-              ))}
-            </ul>
+
+                {NAV_CATEGORIES.map((category) => (
+                  <li
+                    key={category.name}
+                    onMouseEnter={() => setActiveCategory(category.name)}
+                    style={{ position: 'relative' }}
+                  >
+                    <Link
+                      href={category.href}
+                      style={{
+                        textDecoration: 'none',
+                        color: activeCategory === category.name ? '#000000' : '#242525',
+                        display: 'inline-block',
+                      }}
+                    >
+                      {category.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+
+              {/* ÍCONOS BUSCAR Y LOGIN (DERECHA) - SOLO VISIBLES EN SCROLL DESKTOP */}
+              <div className={`sticky-actions-right ${isScrolled ? 'show-sticky' : ''}`}>
+                <button
+                  onClick={() => setIsDesktopSearchOpen(true)}
+                  aria-label="Buscar"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'flex',
+                  }}
+                >
+                  <Search size={19} color="#242525" />
+                </button>
+                <Link
+                  href="/login"
+                  aria-label="Cuenta"
+                  style={{ display: 'flex', alignItems: 'center' }}
+                >
+                  <User size={20} color="#242525" />
+                </Link>
+              </div>
+            </div>
           </div>
         </nav>
 
@@ -315,15 +496,14 @@ export const Header = () => {
             >
               <div
                 style={{
-                  maxWidth: '1280px',
+                  maxWidth: '900px',
                   margin: '0 auto',
-                  padding: '30px 30px 35px 30px',
+                  padding: '30px 20px 35px 20px',
                   textAlign: 'left',
                   boxSizing: 'border-box',
                   fontFamily: "'Noto Sans KR', sans-serif",
                 }}
               >
-                {/* TÍTULO PRINCIPAL DE LA CATEGORÍA */}
                 <div style={{ marginBottom: '20px' }}>
                   <Link
                     href={category.href}
@@ -345,7 +525,6 @@ export const Header = () => {
                   </Link>
                 </div>
 
-                {/* LISTA DE SUBCATEGORÍAS */}
                 <ul
                   style={{
                     listStyle: 'none',
@@ -376,7 +555,6 @@ export const Header = () => {
                   ))}
                 </ul>
 
-                {/* ENLACE VER TODO */}
                 <div>
                   <Link
                     href={category.href}
@@ -403,7 +581,181 @@ export const Header = () => {
         <div style={{ width: '100%', height: '1px', backgroundColor: '#f0f0f0' }} />
       </header>
 
-      {/* MENÚ LATERAL FULLSCREEN PARA MÓVIL (HAMBURGUESA) */}
+      {/* MODAL BÚSQUEDA CENTRADO ESTILO COMMAND / K */}
+      {isDesktopSearchOpen && (
+        <div
+          onClick={handleCloseDesktopSearch}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            zIndex: 120,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            paddingTop: '12vh',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            boxSizing: 'border-box',
+            fontFamily: "'Noto Sans KR', sans-serif",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '640px',
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              border: '1px solid #e5e5e5',
+            }}
+          >
+            {/* ENTRADA DE TEXTO COMMAND / K */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '16px 20px',
+                borderBottom: '1px solid #eeeeee',
+                gap: '12px',
+              }}
+            >
+              {isLoadingSearch ? (
+                <Loader2 className="animate-spin" size={20} color="#777" />
+              ) : (
+                <Search size={20} color="#777" />
+              )}
+              <input
+                type="text"
+                autoFocus
+                placeholder="Buscar artículos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  fontSize: '1rem',
+                  border: 'none',
+                  outline: 'none',
+                  backgroundColor: 'transparent',
+                  color: '#242525',
+                }}
+              />
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  color: '#999',
+                  backgroundColor: '#f3f3f3',
+                  padding: '3px 7px',
+                  borderRadius: '4px',
+                  border: '1px solid #e0e0e0',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                ESC
+              </span>
+            </div>
+
+            {/* RESULTADOS O MENSAJES */}
+            <div style={{ maxHeight: '380px', overflowY: 'auto', padding: '10px 0' }}>
+              {searchResults.length > 0 ? (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {searchResults.map((post) => (
+                    <li key={post.id}>
+                      <Link
+                        href={`/articulos/${post.slug}`}
+                        onClick={handleCloseDesktopSearch}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '14px',
+                          padding: '12px 20px',
+                          textDecoration: 'none',
+                          color: '#242525',
+                          transition: 'background-color 0.15s ease',
+                        }}
+                        className="cmd-k-item"
+                      >
+                        {post.featuredImage?.url && (
+                          <img
+                            src={`${PAYLOAD_URL}${post.featuredImage.url}`}
+                            alt={post.featuredImage.alt || post.title}
+                            style={{
+                              width: '48px',
+                              height: '48px',
+                              objectFit: 'cover',
+                              borderRadius: '6px',
+                            }}
+                          />
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <h4
+                            style={{
+                              margin: 0,
+                              fontSize: '0.95rem',
+                              fontWeight: 500,
+                              lineHeight: '1.3',
+                            }}
+                          >
+                            {post.title}
+                          </h4>
+                          {typeof post.category === 'object' && post.category?.name && (
+                            <span
+                              style={{
+                                fontSize: '0.75rem',
+                                color: '#888',
+                                textTransform: 'uppercase',
+                                marginTop: '2px',
+                                display: 'block',
+                              }}
+                            >
+                              {post.category.name}
+                            </span>
+                          )}
+                        </div>
+                        <ChevronRight size={16} color="#aaa" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : searchQuery.trim() && !isLoadingSearch ? (
+                <p
+                  style={{
+                    color: '#888',
+                    textAlign: 'center',
+                    margin: '30px 0',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  No se encontraron resultados para "{searchQuery}".
+                </p>
+              ) : (
+                <p
+                  style={{
+                    color: '#aaa',
+                    textAlign: 'center',
+                    margin: '25px 0',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  Escribe para buscar publicaciones o artículos...
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MENÚ LATERAL MÓVIL */}
       <div
         style={{
           position: 'fixed',
@@ -421,7 +773,6 @@ export const Header = () => {
           overflowY: 'auto',
         }}
       >
-        {/* CABECERA MENÚ MÓVIL */}
         <div
           style={{
             display: 'flex',
@@ -433,7 +784,7 @@ export const Header = () => {
           }}
         >
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={handleCloseMobileMenu}
             aria-label="Cerrar menú"
             style={{
               background: 'none',
@@ -466,11 +817,13 @@ export const Header = () => {
           <div style={{ width: '28px' }} />
         </div>
 
-        {/* BUSCADOR MÓVIL */}
-        <div style={{ position: 'relative', width: '100%', marginBottom: '25px' }}>
+        {/* INPUT DE BÚSQUEDA MÓVIL CONECTADO A PAYLOAD */}
+        <div style={{ position: 'relative', width: '100%', marginBottom: '20px' }}>
           <input
             type="text"
             placeholder="Buscar en Vanaal..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: '100%',
               padding: '12px 40px 12px 15px',
@@ -483,19 +836,77 @@ export const Header = () => {
               fontFamily: "'Noto Sans KR', sans-serif",
             }}
           />
-          <Search
-            size={18}
-            color="#777"
+          <div
             style={{
               position: 'absolute',
               right: '15px',
               top: '50%',
               transform: 'translateY(-50%)',
             }}
-          />
+          >
+            {isLoadingSearch ? (
+              <Loader2 className="animate-spin" size={18} color="#777" />
+            ) : (
+              <Search size={18} color="#777" />
+            )}
+          </div>
         </div>
 
-        {/* SECCIONES Y CATEGORÍAS MÓVIL */}
+        {/* RESULTADOS DE BÚSQUEDA MÓVIL */}
+        {searchQuery.trim() !== '' && (
+          <div
+            style={{ marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}
+          >
+            {searchResults.length > 0 ? (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {searchResults.map((post) => (
+                  <li key={post.id} style={{ borderBottom: '1px solid #f8f8f8' }}>
+                    <Link
+                      href={`/articulos/${post.slug}`}
+                      onClick={handleCloseMobileMenu}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '10px 0',
+                        textDecoration: 'none',
+                        color: '#242525',
+                      }}
+                    >
+                      {post.featuredImage?.url && (
+                        <img
+                          src={`${PAYLOAD_URL}${post.featuredImage.url}`}
+                          alt={post.featuredImage.alt || post.title}
+                          style={{
+                            width: '45px',
+                            height: '45px',
+                            objectFit: 'cover',
+                            borderRadius: '4px',
+                          }}
+                        />
+                      )}
+                      <div>
+                        <h5 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500 }}>
+                          {post.title}
+                        </h5>
+                        {typeof post.category === 'object' && post.category?.name && (
+                          <span style={{ fontSize: '0.75rem', color: '#888' }}>
+                            {post.category.name}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : !isLoadingSearch ? (
+              <p style={{ fontSize: '0.85rem', color: '#888', margin: '10px 0' }}>
+                Sin resultados para "{searchQuery}"
+              </p>
+            ) : null}
+          </div>
+        )}
+
         <ul
           style={{
             listStyle: 'none',
@@ -519,7 +930,6 @@ export const Header = () => {
                   borderBottom: isLast ? '1px solid #eeeeee' : 'none',
                 }}
               >
-                {/* CLIC EN EL TÍTULO O LA FLECHA DESPLIEGA EL SUBMENÚ MÓVIL */}
                 <button
                   onClick={() => toggleMobileCategory(cat.name)}
                   aria-label={`Desplegar submenú de ${cat.name}`}
@@ -557,7 +967,6 @@ export const Header = () => {
                   />
                 </button>
 
-                {/* CONTENIDO DESPLEGABLE CON SUBCATEGORÍAS MÓVIL */}
                 {isExpanded && (
                   <div className="mobile-submenu-container">
                     <ul
@@ -574,7 +983,7 @@ export const Header = () => {
                         <li key={sub.name}>
                           <Link
                             href={sub.href}
-                            onClick={() => setIsOpen(false)}
+                            onClick={handleCloseMobileMenu}
                             style={{
                               textDecoration: 'none',
                               color: '#242525',
@@ -591,7 +1000,7 @@ export const Header = () => {
                       <li style={{ paddingTop: '6px' }}>
                         <Link
                           href={cat.href}
-                          onClick={() => setIsOpen(false)}
+                          onClick={handleCloseMobileMenu}
                           style={{
                             textDecoration: 'none',
                             color: '#242525',
@@ -614,7 +1023,6 @@ export const Header = () => {
             )
           })}
 
-          {/* CUENTA Y ENLACES SECUNDARIOS */}
           {[
             { name: 'Sign In', href: '/login', icon: User, isAccount: true, isFirstAccount: true },
             { name: 'Suscribirse', href: '/suscribirse', icon: Heart, isAccount: true },
@@ -634,7 +1042,7 @@ export const Header = () => {
               <li key={index} style={{ marginTop: marginTopStyle }}>
                 <Link
                   href={item.href}
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleCloseMobileMenu}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -661,7 +1069,6 @@ export const Header = () => {
           })}
         </ul>
 
-        {/* FOOTER INSTAGRAM */}
         <div
           style={{
             marginTop: 'auto',
@@ -705,13 +1112,46 @@ export const Header = () => {
 
       {/* ESTILOS CSS RESPONSIVE */}
       <style jsx global>{`
+        .main-header-root {
+          transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         .mobile-top-bar {
           display: none;
+        }
+
+        .desktop-nav-logo {
+          display: none;
+          margin-right: 10px;
+        }
+
+        .sticky-actions-left,
+        .sticky-actions-right {
+          display: none;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
+        }
+
+        .nav-wrapper-desktop {
+          display: flex;
+          align-items: center;
+          justifycontent: center;
+          position: relative;
+          width: 100%;
+        }
+
+        .categories-list {
+          padding: 14px 20px;
         }
 
         .megamenu-sublink:hover {
           color: rgb(131, 133, 136) !important;
           text-decoration: none;
+        }
+
+        .cmd-k-item:hover {
+          background-color: #f7f7f7;
         }
 
         .mobile-submenu-container {
@@ -720,15 +1160,72 @@ export const Header = () => {
           margin: 0 0 12px 0;
         }
 
+        .smooth-collapse-container {
+          max-height: 120px;
+          opacity: 1;
+          overflow: hidden;
+          transition:
+            max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+
         @media (min-width: 768px) {
+          .categories-inner-container {
+            padding: 0 20px;
+          }
+
+          .categories-list {
+            padding: 14px 20px 14px 0;
+          }
+
+          .smooth-collapse-container.collapsed {
+            max-height: 0px !important;
+            opacity: 0 !important;
+          }
+
+          .desktop-nav-logo {
+            display: flex;
+            align-items: center;
+          }
+
           .categories-scroll-bar {
             overflow-x: visible !important;
           }
-          .categories-inner-container {
-            display: flex !important;
-            justify-content: center !important;
-            width: 100% !important;
+
+          .sticky-actions-left {
+            display: flex;
+            align-items: center;
+            position: absolute;
+            left: 0px;
           }
+
+          .sticky-actions-right {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            position: absolute;
+            right: 0px;
+          }
+
+          .sticky-actions-left.show-sticky,
+          .sticky-actions-right.show-sticky {
+            opacity: 1;
+            pointer-events: auto;
+          }
+
           .categories-list {
             justify-content: center !important;
             width: fit-content;
@@ -737,6 +1234,18 @@ export const Header = () => {
         }
 
         @media (max-width: 767px) {
+          .categories-inner-container {
+            padding: 0;
+          }
+
+          .categories-list {
+            padding: 12px 20px !important;
+          }
+
+          .main-header-root.mobile-hidden {
+            transform: translateY(-100%);
+          }
+
           .desktop-megamenu-panel {
             display: none !important;
           }
@@ -747,18 +1256,6 @@ export const Header = () => {
             -ms-overflow-style: none;
             scrollbar-width: none;
           }
-          .categories-inner-container {
-            padding-right: 5px !important;
-          }
-        }
-
-        @media (min-width: 768px) {
-          .mobile-menu-btn {
-            display: none !important;
-          }
-        }
-
-        @media (max-width: 767px) {
           .desktop-suscribe,
           .desktop-user {
             display: none !important;
@@ -770,6 +1267,12 @@ export const Header = () => {
             padding: 8px 20px;
             background-color: #ffffff;
             border-bottom: 1px solid #eeeeee;
+          }
+        }
+
+        @media (min-width: 768px) {
+          .mobile-menu-btn {
+            display: none !important;
           }
         }
 

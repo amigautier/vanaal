@@ -55,7 +55,7 @@ export const Footer = () => {
           <h3 className="footer-title">Más acerca de Vanaal</h3>
           <ul className="footer-links">
             <li>
-              <Link href="/about">About Us</Link>
+              <Link href="/about">About Vanaal</Link>
             </li>
             <li>
               <Link href="/contacto">Contáctanos</Link>
@@ -102,9 +102,8 @@ export const Footer = () => {
       <div className="footer-bottom">
         <p>© {currentYear} Vanaal Magazine. Todos los derechos reservados.</p>
         <p className="footer-copyright">
-          Todos los textos, imágenes y contenidos editoriales son propiedad exclusiva de Vanaal y
-          están protegidos por derechos de autor. Queda estrictamente prohibida su reproducción
-          total o parcial.
+          Todas las imágenes y contenido son propiedad exclusiva de Vanaal, están protegidos y queda
+          estrictamente prohibida su reproducción total o parcial.
         </p>
       </div>
     </footer>

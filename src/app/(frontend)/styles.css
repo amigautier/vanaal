@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-border-box;
   margin: 0;
   padding: 0;
@@ -376,7 +378,7 @@ body {
   width: auto;
   height: 38px;
   object-fit: contain;
-  filter: brightness(0) invert(1); 
+  filter: brightness(0) invert(1);
 }
 
 .footer-description {
@@ -454,6 +456,11 @@ body {
   letter-spacing: 0.5px;
 }
 
+.footer-copyright {
+  margin-top: 6px;
+  color: #b6b5b5;
+}
+
 /* ==========================================
    MODO MOBILE (CENTRADO) FOOTER
    ========================================== */
@@ -481,7 +488,7 @@ body {
     justify-content: center;
   }
 
-  .footer-copyright{
+  .footer-copyright {
     font-size: 0.8rem;
   }
 }
