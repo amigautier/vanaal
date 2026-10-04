@@ -1,24 +1,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
 
+*, *::before, *::after {
+  box-sizing: border-border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  overflow-y: scroll;
+  width: 100%;
+}
+
 body {
   margin: 0;
   padding: 0;
   background-color: #ffffff;
   color: #222222;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
+/* Ancho global */
 .home-container {
-  max-width: 1200px;
+  max-width: 1500px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 40px 24px;
+  padding-top: 200px;
 }
 
 .category-section {
   margin-bottom: 70px;
 }
 
-/* Encabezado con Línea Arriba y Línea Abajo */
+/* Encabezado */
 .section-header-framed {
   text-align: center;
   border-top: 1px solid #e2e1e1;
@@ -28,45 +41,15 @@ body {
 }
 
 .section-title {
-  font-family: sans-serif;
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-size: 1.4rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 3px;
   margin: 0;
+  color: #303131;
 }
 
-/* Grillas de Contenido */
-.posts-grid-standard {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 32px;
-}
-
-@media (min-width: 640px) {
-  .posts-grid-standard {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .posts-grid-standard {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.posts-grid-featured {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 32px;
-}
-
-@media (min-width: 1024px) {
-  .posts-grid-featured {
-    grid-template-columns: 1.5fr 1fr 1fr;
-  }
-}
-
+/* Base de Tarjetas */
 .post-card a {
   text-decoration: none;
   color: inherit;
@@ -74,7 +57,6 @@ body {
   flex-direction: column;
 }
 
-/* Imagen Arriba */
 .card-image-wrapper {
   position: relative;
   width: 100%;
@@ -92,14 +74,13 @@ body {
   transform: scale(1.02);
 }
 
-/* Contenido del Post */
 .card-content {
   display: flex;
   flex-direction: column;
 }
 
 .card-category-tag {
-  font-family: sans-serif;
+  font-family: 'Noto Sans KR', sans-serif;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -109,7 +90,7 @@ body {
 }
 
 .card-title {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 400;
   line-height: 1.3;
   margin: 0 0 8px 0;
@@ -123,7 +104,209 @@ body {
   margin: 0;
 }
 
-/* Pie de Sección (Ver Todo) */
+/* ==========================================================
+   LAYOUT 1 (MODA LOCAL): 3 Tarjetas Exactas Visibles en Desktop
+   ========================================================== */
+.layout-section-1 {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 15px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.layout-section-1 .post-card {
+  flex: 0 0 82vw;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 1024px) {
+  .layout-section-1 {
+    gap: 24px;
+    padding-bottom: 15px;
+  }
+
+  /* Exactamente 3 tarjetas visibles al tiempo en Desktop */
+  .layout-section-1 .post-card {
+    flex: 0 0 calc((100% - 48px) / 3);
+    scroll-snap-align: start;
+  }
+}
+
+/* ==========================================================
+   LAYOUT 2 (MAKEUP & BEAUTY): Centro Destacado
+   ========================================================== */
+.layout-section-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.sec2-side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (min-width: 1024px) {
+  .layout-section-2 {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .layout-section-2 .sec2-side .card-image-wrapper {
+    aspect-ratio: 4 / 3;
+  }
+
+  .layout-section-2 .sec2-center .card-image-wrapper {
+    aspect-ratio: 3 / 4;
+  }
+
+  .featured-card .card-title {
+    font-size: 1.35rem;
+    font-weight: 600;
+  }
+}
+
+/* ==========================================================
+   LAYOUT 3V (CULTURA): Mobile Vertical (máx 4) | Desktop Scroll 10
+   ========================================================== */
+.layout-section-3-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.layout-section-3-vertical .post-card:nth-child(n + 5) {
+  display: none;
+}
+
+/* ==========================================================
+   LAYOUT 3 (LIFESTYLE): Mobile Scroll Horizontal (máx 8) | Desktop Scroll 10
+   ========================================================== */
+.layout-section-3-scroll {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 15px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.layout-section-3-scroll .post-card {
+  flex: 0 0 82vw;
+  scroll-snap-align: start;
+}
+
+.layout-section-3-scroll .post-card:nth-child(n + 9) {
+  display: none;
+}
+
+/* Desktop común para Layout 3 (Lifestyle & Cultura): Scroll Horizontal de 10 Historias */
+@media (min-width: 1024px) {
+  .layout-section-3-vertical,
+  .layout-section-3-scroll {
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 15px;
+  }
+
+  .layout-section-3-vertical .post-card:nth-child(n + 5),
+  .layout-section-3-scroll .post-card:nth-child(n + 9) {
+    display: block;
+  }
+
+  .layout-section-3-vertical .post-card,
+  .layout-section-3-scroll .post-card {
+    flex: 0 0 280px;
+    scroll-snap-align: start;
+  }
+}
+
+/* ==========================================================
+   LAYOUT 4 (HORÓSCOPO): Mobile Vertical | Desktop Grid de 4 columnas
+   ========================================================== */
+.layout-section-4 {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+@media (min-width: 768px) {
+  .layout-section-4 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .layout-section-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+  }
+}
+
+/* ==========================================================
+   LAYOUT 5 (FESTIVALES Y EVENTOS): Grande Izq + Grid Pequeña Der
+   ========================================================== */
+.layout-section-5 {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.sec5-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+@media (min-width: 1024px) {
+  .layout-section-5 {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .sec5-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .layout-section-5 .sec5-main .card-image-wrapper {
+    aspect-ratio: 4 / 3;
+  }
+
+  .layout-section-5 .sec5-grid .card-image-wrapper {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* Estilos de Scrollbar */
+.layout-section-1::-webkit-scrollbar,
+.layout-section-3-scroll::-webkit-scrollbar,
+.layout-section-3-vertical::-webkit-scrollbar {
+  height: 6px;
+}
+
+.layout-section-1::-webkit-scrollbar-thumb,
+.layout-section-3-scroll::-webkit-scrollbar-thumb,
+.layout-section-3-vertical::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 4px;
+}
+
+/* Footer */
 .section-footer {
   text-align: center;
   margin-top: 28px;
@@ -132,7 +315,7 @@ body {
 
 .see-all-link {
   display: inline-block;
-  font-family: sans-serif;
+  font-family: 'Noto Sans KR', sans-serif;
   font-size: 0.7rem;
   font-weight: 600;
   color: #797777;
@@ -141,7 +324,9 @@ body {
   letter-spacing: 1.5px;
   border-bottom: 1px solid #797777;
   padding-bottom: 2px;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .see-all-link:hover {
@@ -154,4 +339,149 @@ body {
   padding: 80px 20px;
   font-style: italic;
   color: #777;
+}
+
+/* ==========================================
+   FOOTER STYLE (VANAAL MAGAZINE)
+   ========================================== */
+
+.footer-container {
+  background-color: #000000;
+  color: #ffffff;
+  padding: 60px 20px 20px 20px;
+  font-family: 'Noto Sans KR', sans-serif;
+  border-top: 1px solid #222222;
+}
+
+.footer-content {
+  max-width: 1450px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 40px;
+  padding-bottom: 40px;
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.footer-logo-link {
+  display: inline-block;
+}
+
+.footer-logo-img {
+  width: auto;
+  height: 38px;
+  object-fit: contain;
+  filter: brightness(0) invert(1); 
+}
+
+.footer-description {
+  color: #ffffff;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 500px;
+  margin: 0;
+  font-weight: 300;
+}
+
+.footer-social {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.social-icon {
+  color: #ffffff;
+  transition: opacity 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.social-icon:hover {
+  opacity: 0.7;
+}
+
+.footer-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.footer-title {
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer-links a {
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 300;
+  transition: opacity 0.2s ease;
+}
+
+.footer-links a:hover {
+  opacity: 0.7;
+}
+
+.footer-bottom {
+  max-width: 1450px;
+  margin: 0 auto;
+  padding-top: 28px;
+  padding-bottom: 24px;
+  border-top: 1px solid #222222;
+  text-align: center;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================
+   MODO MOBILE (CENTRADO) FOOTER
+   ========================================== */
+
+@media (max-width: 768px) {
+  .footer-content {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 36px;
+  }
+
+  .footer-brand {
+    align-items: center;
+  }
+
+  .footer-description {
+    max-width: 100%;
+  }
+
+  .footer-column {
+    align-items: center;
+  }
+
+  .footer-social {
+    justify-content: center;
+  }
+
+  .footer-copyright{
+    font-size: 0.8rem;
+  }
 }
